@@ -5713,6 +5713,34 @@ exports.Sequence = class Sequence extends Base
       expressions:
         expression.ast(o) for expression in @expressions
 
+exports.VariableDeclaration = class VariableDeclaration extends Base
+  children: ['declarations']
+
+  constructor: ({@kind, @declarations}) ->
+    super()
+
+  compileNode: (o) ->
+    code = []
+    code.push @makeCode "#{@tab}#{@kind} "
+    for declaration, index in @declarations
+      code.push declaration.compileNode(o)...
+      code.push @makeCode ", " unless index is @declarations.length - 1
+    code
+
+exports.VariableDeclarator = class VariableDeclarator extends Base
+  children: ['id', 'init']
+
+  constructor: ({@id, @init}) ->
+    super()
+
+  compileNode: (o) ->
+    code = []
+    code.push @id.compileNode(o)...
+    if @init?
+      code.push @makeCode ' = '
+      code.push @init.compileNode(o)...
+    code
+
 # Constants
 # ---------
 
@@ -6109,3 +6137,4 @@ emptyExpressionLocationData = ({interpolationNode: element, openingBrace, closin
     element.locationData.range[0] + openingBrace.length
     element.locationData.range[1] - closingBrace.length
   ]
+dump = (obj) => console.log(require('util').inspect(obj, false, null))

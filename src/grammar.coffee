@@ -106,6 +106,16 @@ grammar =
     o 'STATEMENT',                              -> new StatementLiteral $1
     o 'Import'
     o 'Export'
+    o 'Declaration'
+  ]
+
+  Declaration: [
+    o 'CONST Declarator',                       -> new VariableDeclaration kind: $1, declarations: [$2]
+    o 'LET Declarator',                         -> new VariableDeclaration kind: $1, declarations: [$2]
+  ]
+
+  Declarator: [
+    o 'Identifier = Expression',                -> new VariableDeclarator id: $1, init: $3
   ]
 
   # All the different types of expressions in our language. The basic unit of
