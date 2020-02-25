@@ -638,6 +638,8 @@ exports.Block = class Block extends Base
     top   = o.level is LEVEL_TOP
     compiledNodes = []
 
+    @extractTypeSignatures()
+
     for node, index in @expressions
       if node.hoisted
         # This is a hoisted expression.
@@ -671,6 +673,19 @@ exports.Block = class Block extends Base
     else
       answer = [@makeCode 'void 0']
     if compiledNodes.length > 1 and o.level >= LEVEL_LIST then @wrapInParentheses answer else answer
+
+  extractTypeSignatures: ->
+    expressions = @expressions[..]
+    for expression, index in expressions when expression instanceof TypeSignature
+      nextExpression = expressions[index + 1]
+      expression.error 'Type signature must be followed by corresponding declaration' unless nextExpression instanceof VariableDeclaration
+      typeSignatureName = expression.name.value
+      declaredIdentifier = nextExpression.declarations[0].id
+      declaredName = declaredIdentifier.value
+      expression.error "Type signature for #{typeSignatureName} doesn't match following declaration for #{declaredName}" unless typeSignatureName is declaredName
+      expression.error "Type signature can't be applied to declaration with existing type annotation" if declaredIdentifier.typeAnnotation?
+      declaredIdentifier.typeAnnotation = expression.typeAnnotation
+      @expressions.splice index, 1
 
   compileRoot: (o) ->
     @spaced = yes
@@ -5763,6 +5778,12 @@ exports.TSTypeAnnotation = class TSTypeAnnotation extends Base
 exports.TSNumberKeyword = class TSNumberKeyword extends Base
   compileNode: ->
     [@makeCode 'number']
+
+exports.TypeSignature = class TypeSignature extends Base
+  children: ['name', 'typeAnnotation']
+
+  constructor: ({@name, @typeAnnotation}) ->
+    super()
 
 # Constants
 # ---------

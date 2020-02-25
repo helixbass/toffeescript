@@ -753,6 +753,7 @@ exports.Lexer = class Lexer
     if match = OPERATOR.exec @chunk
       [value] = match
       @tagParameters() if CODE.test value
+      hasFollowingWhitespace = /^\s+/.test @chunk[value.length...]
     else
       value = @chunk.charAt 0
       hasFollowingWhitespace = /^\s+/.test @chunk[1...]
@@ -805,6 +806,7 @@ exports.Lexer = class Lexer
     else if value in SHIFT           then tag = 'SHIFT'
     else if value is '?' and prev?.spaced then tag = 'BIN?'
     else if value is '|' and (not prev?.spaced or not hasFollowingWhitespace) then tag = 'TYPE_ANNOTATION_DELIMITER'
+    else if value is '::' and (prev?.spaced and hasFollowingWhitespace)       then tag = 'TYPE_SIGNATURE_::'
     else if prev
       if value is '(' and not prev.spaced and prev[0] in CALLABLE
         prev[0] = 'FUNC_EXIST' if prev[0] is '?'

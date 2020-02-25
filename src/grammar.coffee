@@ -107,6 +107,7 @@ grammar =
     o 'Import'
     o 'Export'
     o 'Declaration'
+    o 'TypeSignature'
   ]
 
   Declaration: [
@@ -131,6 +132,10 @@ grammar =
 
   TypeAnnotation: [
     o 'Identifier',                             -> new TSTypeAnnotation $1
+  ]
+
+  TypeSignature: [
+    o 'Identifier TYPE_SIGNATURE_:: TypeAnnotation',    -> new TypeSignature name: $1, typeAnnotation: $3
   ]
 
   # All the different types of expressions in our language. The basic unit of

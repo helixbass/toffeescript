@@ -2002,3 +2002,32 @@ test "#4834: dynamic import requires explicit call parentheses", ->
     promise = import 'foo'
                           ^
   '''
+
+test 'dangling type signature', ->
+  assertErrorFormatNoAst '''
+    x :: number
+  ''', '''
+    [stdin]:1:1: error: Type signature must be followed by corresponding declaration
+    x :: number
+    ^^^^^^^^^^^
+  '''
+
+test 'mismatching type signature', ->
+  assertErrorFormatNoAst '''
+    x :: number
+    const y = 3
+  ''', '''
+    [stdin]:1:1: error: Type signature for x doesn't match following declaration for y
+    x :: number
+    ^^^^^^^^^^^
+  '''
+
+test 'competing type signature', ->
+  assertErrorFormatNoAst '''
+    x :: number
+    const |number| x = 3
+  ''', '''
+    [stdin]:1:1: error: Type signature can't be applied to declaration with existing type annotation
+    x :: number
+    ^^^^^^^^^^^
+  '''
