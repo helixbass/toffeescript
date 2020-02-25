@@ -1157,6 +1157,14 @@ exports.IdentifierLiteral = class IdentifierLiteral extends Literal
   eachName: (iterator) ->
     iterator @
 
+  compileNode: (o) ->
+    code = []
+    code.push @makeCode @value
+    if @typeAnnotation?
+      code.push @makeCode ': '
+      code.push @typeAnnotation.compileNode(o)...
+    code
+
   astType: ->
     if @jsx
       'JSXIdentifier'
@@ -5723,7 +5731,7 @@ exports.VariableDeclaration = class VariableDeclaration extends Base
     code = []
     code.push @makeCode "#{@tab}#{@kind} "
     for declaration, index in @declarations
-      code.push declaration.compileNode(o)...
+      code.push declaration.compileToFragments(o)...
       code.push @makeCode ", " unless index is @declarations.length - 1
     code
 
@@ -5738,8 +5746,23 @@ exports.VariableDeclarator = class VariableDeclarator extends Base
     code.push @id.compileNode(o)...
     if @init?
       code.push @makeCode ' = '
-      code.push @init.compileNode(o)...
+      code.push @init.compileToFragments(o)...
     code
+
+exports.TSTypeAnnotation = class TSTypeAnnotation extends Base
+  children: ['typeAnnotation']
+
+  constructor: (@typeAnnotation) ->
+    super()
+    if @typeAnnotation instanceof IdentifierLiteral and @typeAnnotation.value is 'number'
+      @typeAnnotation = new TSNumberKeyword
+
+  compileNode: (o) ->
+    @typeAnnotation.compileToFragments o
+
+exports.TSNumberKeyword = class TSNumberKeyword extends Base
+  compileNode: ->
+    [@makeCode 'number']
 
 # Constants
 # ---------
