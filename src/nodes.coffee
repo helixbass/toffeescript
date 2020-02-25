@@ -638,6 +638,8 @@ exports.Block = class Block extends Base
     top   = o.level is LEVEL_TOP
     compiledNodes = []
 
+    @extractTypeSignatures()
+
     for node, index in @expressions
       if node.hoisted
         # This is a hoisted expression.
@@ -671,6 +673,19 @@ exports.Block = class Block extends Base
     else
       answer = [@makeCode 'void 0']
     if compiledNodes.length > 1 and o.level >= LEVEL_LIST then @wrapInParentheses answer else answer
+
+  extractTypeSignatures: ->
+    expressions = @expressions[..]
+    for expression, index in expressions when expression instanceof TypeSignature
+      nextExpression = expressions[index + 1]
+      expression.error 'Type signature must be followed by corresponding declaration' unless nextExpression instanceof VariableDeclaration
+      typeSignatureName = expression.name.value
+      declaredIdentifier = nextExpression.declarations[0].id
+      declaredName = declaredIdentifier.value
+      expression.error "Type signature for #{typeSignatureName} doesn't match following declaration for #{declaredName}" unless typeSignatureName is declaredName
+      expression.error "Type signature can't be applied to declaration with existing type annotation" if declaredIdentifier.typeAnnotation?
+      declaredIdentifier.typeAnnotation = expression.typeAnnotation
+      @expressions.splice index, 1
 
   compileRoot: (o) ->
     @spaced = yes
@@ -1156,6 +1171,14 @@ exports.IdentifierLiteral = class IdentifierLiteral extends Literal
 
   eachName: (iterator) ->
     iterator @
+
+  compileNode: (o) ->
+    code = []
+    code.push @makeCode @value
+    if @typeAnnotation?
+      code.push @makeCode ': '
+      code.push @typeAnnotation.compileNode(o)...
+    code
 
   astType: ->
     if @jsx
@@ -5713,6 +5736,55 @@ exports.Sequence = class Sequence extends Base
       expressions:
         expression.ast(o) for expression in @expressions
 
+exports.VariableDeclaration = class VariableDeclaration extends Base
+  children: ['declarations']
+
+  constructor: ({@kind, @declarations}) ->
+    super()
+
+  compileNode: (o) ->
+    code = []
+    code.push @makeCode "#{@tab}#{@kind} "
+    for declaration, index in @declarations
+      code.push declaration.compileToFragments(o)...
+      code.push @makeCode ", " unless index is @declarations.length - 1
+    code
+
+exports.VariableDeclarator = class VariableDeclarator extends Base
+  children: ['id', 'init']
+
+  constructor: ({@id, @init}) ->
+    super()
+
+  compileNode: (o) ->
+    code = []
+    code.push @id.compileNode(o)...
+    if @init?
+      code.push @makeCode ' = '
+      code.push @init.compileToFragments(o)...
+    code
+
+exports.TSTypeAnnotation = class TSTypeAnnotation extends Base
+  children: ['typeAnnotation']
+
+  constructor: (@typeAnnotation) ->
+    super()
+    if @typeAnnotation instanceof IdentifierLiteral and @typeAnnotation.value is 'number'
+      @typeAnnotation = new TSNumberKeyword
+
+  compileNode: (o) ->
+    @typeAnnotation.compileToFragments o
+
+exports.TSNumberKeyword = class TSNumberKeyword extends Base
+  compileNode: ->
+    [@makeCode 'number']
+
+exports.TypeSignature = class TypeSignature extends Base
+  children: ['name', 'typeAnnotation']
+
+  constructor: ({@name, @typeAnnotation}) ->
+    super()
+
 # Constants
 # ---------
 
@@ -6109,3 +6181,4 @@ emptyExpressionLocationData = ({interpolationNode: element, openingBrace, closin
     element.locationData.range[0] + openingBrace.length
     element.locationData.range[1] - closingBrace.length
   ]
+dump = (obj) => console.log(require('util').inspect(obj, false, null))

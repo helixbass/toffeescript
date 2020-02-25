@@ -106,6 +106,36 @@ grammar =
     o 'STATEMENT',                              -> new StatementLiteral $1
     o 'Import'
     o 'Export'
+    o 'Declaration'
+    o 'TypeSignature'
+  ]
+
+  Declaration: [
+    o 'CONST DeclaratorWithInitializer',        -> new VariableDeclaration kind: $1, declarations: [$2]
+    o 'LET Declarator',                         -> new VariableDeclaration kind: $1, declarations: [$2]
+  ]
+
+  Declarator: [
+    o 'DeclaratorWithInitializer'
+    o 'IdentifierWithOptionalTypeAnnotation',   -> new VariableDeclarator id: $1, init: null
+  ]
+
+  DeclaratorWithInitializer: [
+    o 'IdentifierWithOptionalTypeAnnotation = Expression',  -> new VariableDeclarator id: $1, init: $3
+  ]
+
+  IdentifierWithOptionalTypeAnnotation: [
+    o 'Identifier'
+    o 'Identifier TYPE_ANNOTATION_DELIMITER TypeAnnotation TYPE_ANNOTATION_DELIMITER',  -> $1.typeAnnotation = $3; $1
+    o 'TYPE_ANNOTATION_DELIMITER TypeAnnotation TYPE_ANNOTATION_DELIMITER Identifier',  -> $4.typeAnnotation = $2; $4
+  ]
+
+  TypeAnnotation: [
+    o 'Identifier',                             -> new TSTypeAnnotation $1
+  ]
+
+  TypeSignature: [
+    o 'Identifier TYPE_SIGNATURE_:: TypeAnnotation',    -> new TypeSignature name: $1, typeAnnotation: $3
   ]
 
   # All the different types of expressions in our language. The basic unit of
