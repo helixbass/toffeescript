@@ -110,11 +110,16 @@ grammar =
   ]
 
   Declaration: [
-    o 'CONST Declarator',                       -> new VariableDeclaration kind: $1, declarations: [$2]
+    o 'CONST DeclaratorWithInitializer',        -> new VariableDeclaration kind: $1, declarations: [$2]
     o 'LET Declarator',                         -> new VariableDeclaration kind: $1, declarations: [$2]
   ]
 
   Declarator: [
+    o 'DeclaratorWithInitializer',              -> $1
+    o 'Identifier',                             -> new VariableDeclarator id: $1, init: null
+  ]
+
+  DeclaratorWithInitializer: [
     o 'Identifier = Expression',                -> new VariableDeclarator id: $1, init: $3
   ]
 
